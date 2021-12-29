@@ -40,9 +40,9 @@ help: ## Displays help.
 all: format build
 
 .PHONY: build
-build: check-git deps ## Build configmap-controller.
-	@echo ">> building configmap-controller"
-	@GOBIN=$(GOBIN) go install github.com/saswatamcode/configmap-controller
+build: check-git deps ## Build configmap-operator.
+	@echo ">> building configmap-operator"
+	@GOBIN=$(GOBIN) go install github.com/saswatamcode/configmap-operator
 
 .PHONY: check-comments
 check-comments: ## Checks Go code comments if they have trailing period (excludes protobuffers and vendor files). Comments with more than 3 spaces at beginning are omitted from the check, example: '//    - foo'.
@@ -55,10 +55,10 @@ deps: ## Ensures fresh go.mod and go.sum.
 	@go mod verify
 
 .PHONY: docker
-docker: ## Builds 'configmap-controller' docker image.
+docker: ## Builds 'configmap-operator' docker image.
 docker:
-	@echo ">> building docker image 'configmap-controller' with Dockerfile"
-	@docker build -t "configmap-controller" .
+	@echo ">> building docker image 'configmap-operator' with Dockerfile"
+	@docker build -t "configmap-operator" .
 
 .PHONY: docs
 docs: build $(MDOX) ## Generates config snippets and doc formatting.

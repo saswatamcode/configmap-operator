@@ -3,5 +3,5 @@
 
 package version
 
-// Version returns 'thanos-sd-sidecar' version.
+// Version returns 'configmap-operator' version.
 const Version = "v0.0.1-dev"

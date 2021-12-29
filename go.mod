@@ -1,4 +1,4 @@
-module github.com/saswatamcode/configmap-controller
+module github.com/saswatamcode/configmap-operator
 
 go 1.16
 
@@ -9,6 +9,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
+	k8s.io/api v0.21.1
+	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v12.0.0+incompatible
 )
 

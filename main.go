@@ -18,8 +18,10 @@ import (
 	"github.com/oklog/run"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/saswatamcode/configmap-controller/pkg/extkingpin"
-	"github.com/saswatamcode/configmap-controller/pkg/version"
+	"github.com/saswatamcode/configmap-operator/pkg/extkingpin"
+	"github.com/saswatamcode/configmap-operator/pkg/runtime"
+	"github.com/saswatamcode/configmap-operator/pkg/subscription"
+	"github.com/saswatamcode/configmap-operator/pkg/version"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -58,7 +60,7 @@ func setupLogger(logLevel, logFormat string) log.Logger {
 }
 
 func main() {
-	app := extkingpin.NewApp(kingpin.New(filepath.Base(os.Args[0]), `ConfigMap Controller.`).Version(version.Version))
+	app := extkingpin.NewApp(kingpin.New(filepath.Base(os.Args[0]), `ConfigMap Operator.`).Version(version.Version))
 	logLevel := app.Flag("log.level", "Log filtering level.").
 		Default("info").Enum("error", "warn", "info", "debug")
 	logFormat := app.Flag("log.format", "Log format to use.").
@@ -121,23 +123,33 @@ func interrupt(logger log.Logger, cancel <-chan struct{}) error {
 }
 
 func registerCommands(_ context.Context, app *extkingpin.App) {
-	cmd := app.Command("run", "Launches ConfigMap Controller ")
+	cmd := app.Command("run", "Launches ConfigMap Operator")
 	kubeconfig := cmd.Flag("kubeconfig", "Path to a kubeconfig. Only required if out-of-cluster.").String()
 	masterURL := cmd.Flag("master", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.").String()
 
 	cmd.Run(func(ctx context.Context, logger log.Logger) error {
 		cfg, err := clientcmd.BuildConfigFromFlags(*masterURL, *kubeconfig)
 		if err != nil {
-			level.Error(logger).Log("building kubeconfig", err)
+			level.Error(logger).Log("building kubeconfig error", err)
 			return err
 		}
 
-		level.Info(logger).Log("built config from flags.")
+		level.Info(logger).Log("built config from flags", "success")
 
-		_, err = kubernetes.NewForConfig(cfg)
+		defaultKubernetesClientSet, err := kubernetes.NewForConfig(cfg)
 		if err != nil {
-			level.Error(logger).Log("building watcher clientset", err)
+			level.Error(logger).Log("building watcher clientset error", err)
 			return err
+		}
+
+		if err := runtime.RunLoop([]subscription.Subscription{
+			&subscription.ConfigMapSubscription{
+				Ctx:       ctx,
+				Logger:    logger,
+				ClientSet: defaultKubernetesClientSet,
+			},
+		}); err != nil {
+			panic(err)
 		}
 
 		return nil

@@ -1,13 +1,13 @@
-# configmap-controller
+# configmap-operator
 
-Kubernetes Controller which allows you to periodically update ConfigMaps, based on some external URL which serves the required data.
+Kubernetes Operator which allows you to update ConfigMaps, based on some external URL which serves the required data.
 
 > ⚠ This project is made for learning/experimentation purposes. Not suitable for producation environments. Ideally, you can replicate similar functionality via other standard configuration practices.
 
-```bash mdox-exec="configmap-controller run --help"
-usage: configmap-controller run [<flags>]
+```bash mdox-exec="configmap-operator run --help"
+usage: configmap-operator run [<flags>]
 
-Launches ConfigMap Controller
+Launches ConfigMap Operator
 
 Flags:
   -h, --help                   Show context-sensitive help (also try --help-long
