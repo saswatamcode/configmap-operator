@@ -26,9 +26,11 @@ const (
 )
 
 type ConfigMapSubscription struct {
-	Ctx       context.Context
-	Logger    log.Logger
-	ClientSet kubernetes.Interface
+	Ctx             context.Context
+	Logger          log.Logger
+	ClientSet       kubernetes.Interface
+	Namespace       string
+	RefreshInterval time.Duration
 
 	watcherInterface watch.Interface
 }
@@ -44,7 +46,7 @@ func (c *ConfigMapSubscription) Reconcile(object runtime.Object, event watch.Eve
 		key, keyExists := annotations[configMapOperatorKey]
 
 		if srcExists && keyExists {
-			ticker := time.NewTicker(time.Second * 10)
+			ticker := time.NewTicker(c.RefreshInterval)
 			for {
 				select {
 				case <-ticker.C:
@@ -70,7 +72,7 @@ func (c *ConfigMapSubscription) Reconcile(object runtime.Object, event watch.Eve
 
 func (c *ConfigMapSubscription) Subscribe() (watch.Interface, error) {
 	var err error
-	c.watcherInterface, err = c.ClientSet.CoreV1().ConfigMaps("").Watch(c.Ctx, metav1.ListOptions{})
+	c.watcherInterface, err = c.ClientSet.CoreV1().ConfigMaps(c.Namespace).Watch(c.Ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

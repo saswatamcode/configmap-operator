@@ -122,10 +122,13 @@ func interrupt(logger log.Logger, cancel <-chan struct{}) error {
 	}
 }
 
+// TODO(saswatamcode): Add tests and observability.
 func registerCommands(_ context.Context, app *extkingpin.App) {
 	cmd := app.Command("run", "Launches ConfigMap Operator")
 	kubeconfig := cmd.Flag("kubeconfig", "Path to a kubeconfig. Only required if out-of-cluster.").String()
 	masterURL := cmd.Flag("master", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.").String()
+	namespace := cmd.Flag("namespace", "The namespace to watch.").Default("default").String()
+	refreshInterval := cmd.Flag("refresh.interval", "The interval after which the ConfigMap will be refreshed.").Default("10s").Duration()
 
 	cmd.Run(func(ctx context.Context, logger log.Logger) error {
 		cfg, err := clientcmd.BuildConfigFromFlags(*masterURL, *kubeconfig)
@@ -144,9 +147,11 @@ func registerCommands(_ context.Context, app *extkingpin.App) {
 
 		if err := runtime.RunLoop(ctx, []subscription.Subscription{
 			&subscription.ConfigMapSubscription{
-				Ctx:       ctx,
-				Logger:    logger,
-				ClientSet: defaultKubernetesClientSet,
+				Ctx:             ctx,
+				Logger:          logger,
+				ClientSet:       defaultKubernetesClientSet,
+				Namespace:       *namespace,
+				RefreshInterval: *refreshInterval,
 			},
 		}); err != nil {
 			panic(err)

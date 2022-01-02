@@ -20,5 +20,8 @@ Flags:
       --master=MASTER          The address of the Kubernetes API server.
                                Overrides any value in kubeconfig. Only required
                                if out-of-cluster.
+      --namespace="default"    The namespace to watch.
+      --refresh.interval=10s   The interval after which the ConfigMap will be
+                               refreshed.
 
 ```
