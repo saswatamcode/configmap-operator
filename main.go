@@ -142,7 +142,7 @@ func registerCommands(_ context.Context, app *extkingpin.App) {
 			return err
 		}
 
-		if err := runtime.RunLoop([]subscription.Subscription{
+		if err := runtime.RunLoop(ctx, []subscription.Subscription{
 			&subscription.ConfigMapSubscription{
 				Ctx:       ctx,
 				Logger:    logger,

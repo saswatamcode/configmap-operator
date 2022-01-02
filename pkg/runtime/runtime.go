@@ -4,13 +4,14 @@
 package runtime
 
 import (
+	"context"
 	"sync"
 
 	"github.com/saswatamcode/configmap-operator/pkg/subscription"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-func RunLoop(subscriptions []subscription.Subscription) error {
+func RunLoop(ctx context.Context, subscriptions []subscription.Subscription) error {
 	var wg sync.WaitGroup
 
 	for i := range subscriptions {
@@ -27,9 +28,13 @@ func RunLoop(subscriptions []subscription.Subscription) error {
 					if ok && e.Type != watch.Error {
 						subscription.Reconcile(e.Object, e.Type)
 					}
+				case <-ctx.Done():
+					wg.Done()
+					return nil
 				}
 			}
-		}(subscriptions[i])
+
+		}(subscriptions[i]) //nolint
 	}
 
 	wg.Wait()
