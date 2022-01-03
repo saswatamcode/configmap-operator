@@ -11,17 +11,20 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/bwplotka/mdox/pkg/clilog"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/oklog/run"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/saswatamcode/configmap-operator/pkg/extkingpin"
 	"github.com/saswatamcode/configmap-operator/pkg/runtime"
 	"github.com/saswatamcode/configmap-operator/pkg/subscription"
 	"github.com/saswatamcode/configmap-operator/pkg/version"
+	"github.com/uber/jaeger-client-go/config"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -72,6 +75,24 @@ func main() {
 
 	cmd, runner := app.Parse()
 	logger := setupLogger(*logLevel, *logFormat)
+
+	cfg := config.Configuration{
+		ServiceName: "configmap_operator",
+		Sampler: &config.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &config.ReporterConfig{
+			LogSpans:            true,
+			BufferFlushInterval: 1 * time.Second,
+		},
+	}
+	tracer, closer, err := cfg.NewTracer()
+	if err != nil {
+		panic(err)
+	}
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
 
 	var g run.Group
 	g.Add(func() error {

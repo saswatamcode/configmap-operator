@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	v1 "k8s.io/api/core/v1"
@@ -81,6 +82,12 @@ type ConfigMapSubscription struct {
 
 func (c *ConfigMapSubscription) Reconcile(object runtime.Object, event watch.EventType) {
 	configMap := object.(*v1.ConfigMap)
+
+	rootSpan := opentracing.GlobalTracer().StartSpan("configMapSubscriptionReoncile")
+	rootSpan.SetTag("configMap name", configMap.Name)
+	rootSpan.SetTag("configMap namespace", configMap.Namespace)
+	defer rootSpan.Finish()
+
 	level.Info(c.Logger).Log("ConfigMap subscription event", event, "ConfigMap name", configMap.Name)
 	annotations := configMap.GetAnnotations()
 	dataSrc, srcExists := annotations[configMapOperatorSrc]
@@ -88,6 +95,13 @@ func (c *ConfigMapSubscription) Reconcile(object runtime.Object, event watch.Eve
 
 	switch event {
 	case watch.Added:
+		watchEventAddSpan := opentracing.GlobalTracer().StartSpan(
+			"watchEventAdd", opentracing.ChildOf(rootSpan.Context()),
+		)
+		watchEventAddSpan.SetTag("configMap name", configMap.Name)
+		watchEventAddSpan.SetTag("configMap namespace", configMap.Namespace)
+		defer watchEventAddSpan.Finish()
+
 		// Check if ConfigMap has required annotations.
 		if srcExists && keyExists {
 			c.metrics.configMapGauge.WithLabelValues(configMap.Name, configMap.Namespace).Inc()
@@ -106,7 +120,7 @@ func (c *ConfigMapSubscription) Reconcile(object runtime.Object, event watch.Eve
 						}
 
 						// Get data from src and update ConfigMap with key.
-						updatedConfigMap.Data[key] = string(getData(dataSrc, c.Logger, c.metrics))
+						updatedConfigMap.Data[key] = string(getData(dataSrc, c.Logger, c.metrics, watchEventAddSpan))
 						var err error
 						configMap, err = c.ClientSet.CoreV1().ConfigMaps(configMap.Namespace).Update(c.Ctx, updatedConfigMap, metav1.UpdateOptions{})
 						if err != nil {
@@ -119,6 +133,13 @@ func (c *ConfigMapSubscription) Reconcile(object runtime.Object, event watch.Eve
 			}()
 		}
 	case watch.Deleted:
+		watchEventDeleteSpan := opentracing.GlobalTracer().StartSpan(
+			"watchEventDelete", opentracing.ChildOf(rootSpan.Context()),
+		)
+		watchEventDeleteSpan.SetTag("configMap name", configMap.Name)
+		watchEventDeleteSpan.SetTag("configMap namespace", configMap.Namespace)
+		defer watchEventDeleteSpan.Finish()
+
 		if srcExists && keyExists {
 			c.metrics.configMapGauge.WithLabelValues(configMap.Name, configMap.Namespace).Dec()
 		}
@@ -137,7 +158,12 @@ func (c *ConfigMapSubscription) Subscribe() (watch.Interface, error) {
 	return c.watcherInterface, nil
 }
 
-func getData(dataSrc string, logger log.Logger, m *configMapSubscriptionMetrics) []byte {
+func getData(dataSrc string, logger log.Logger, m *configMapSubscriptionMetrics, parent opentracing.Span) []byte {
+	getDataSpan := opentracing.GlobalTracer().StartSpan(
+		"getData", opentracing.ChildOf(parent.Context()))
+	getDataSpan.SetTag("data source", dataSrc)
+	defer getDataSpan.Finish()
+
 	start := time.Now()
 	if isValidUrl(dataSrc) {
 		// Src is valid URL so make request.

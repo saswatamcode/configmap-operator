@@ -6,8 +6,10 @@ require (
 	github.com/bwplotka/mdox v0.9.0
 	github.com/go-kit/log v0.2.0
 	github.com/oklog/run v1.1.0
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
+	github.com/uber/jaeger-client-go v2.15.0+incompatible
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
