@@ -58,7 +58,7 @@ metadata:
     configmap-operator-key: prom.yaml
 ```
 
-The operator is deployed with the Deployment below and its related RoleBinding and ServiceAccount. It finds the first ConfigMap with the above annotations and starts updating it periodically (15s)
+The operator is deployed with the Deployment below and its related RoleBinding and ServiceAccount. It finds ConfigMaps with the above annotations and starts updating it periodically (15s)
 
 ```yaml mdox-exec="cat examples/manifests/deployment.yaml"
 apiVersion: apps/v1

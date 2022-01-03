@@ -41,31 +41,38 @@ func (c *ConfigMapSubscription) Reconcile(object runtime.Object, event watch.Eve
 
 	switch event {
 	case watch.Added:
+		// Check if ConfigMap has required annotations.
 		annotations := configMap.GetAnnotations()
 		dataSrc, srcExists := annotations[configMapOperatorSrc]
 		key, keyExists := annotations[configMapOperatorKey]
 
 		if srcExists && keyExists {
-			ticker := time.NewTicker(c.RefreshInterval)
-			for {
-				select {
-				case <-ticker.C:
-					level.Info(c.Logger).Log("updating ConfigMap", configMap.Name)
-					updatedConfigMap := configMap.DeepCopy()
-					if len(updatedConfigMap.Data) == 0 {
-						updatedConfigMap.Data = make(map[string]string)
-					}
 
-					updatedConfigMap.Data[key] = string(getData(dataSrc, c.Logger))
-					var err error
-					configMap, err = c.ClientSet.CoreV1().ConfigMaps(configMap.Namespace).Update(c.Ctx, updatedConfigMap, metav1.UpdateOptions{})
-					if err != nil {
-						level.Error(c.Logger).Log("error updating ConfigMap", err)
+			// Update ConfigMaps in goroutines to support multiple ConfigMaps with annotations. End goroutine based on ctx.
+			// TODO(saswatamcode): Improve error handling.
+			go func() {
+				ticker := time.NewTicker(c.RefreshInterval)
+				for {
+					select {
+					case <-ticker.C:
+						level.Info(c.Logger).Log("updating ConfigMap", configMap.Name)
+						updatedConfigMap := configMap.DeepCopy()
+						if len(updatedConfigMap.Data) == 0 {
+							updatedConfigMap.Data = make(map[string]string)
+						}
+
+						// Get data from src and update ConfigMap with key.
+						updatedConfigMap.Data[key] = string(getData(dataSrc, c.Logger))
+						var err error
+						configMap, err = c.ClientSet.CoreV1().ConfigMaps(configMap.Namespace).Update(c.Ctx, updatedConfigMap, metav1.UpdateOptions{})
+						if err != nil {
+							level.Error(c.Logger).Log("error updating ConfigMap", err)
+						}
+					case <-c.Ctx.Done():
+						return
 					}
-				case <-c.Ctx.Done():
-					return
 				}
-			}
+			}()
 		}
 	}
 }
@@ -81,6 +88,7 @@ func (c *ConfigMapSubscription) Subscribe() (watch.Interface, error) {
 
 func getData(dataSrc string, logger log.Logger) []byte {
 	if isValidUrl(dataSrc) {
+		// Src is valid URL so make request.
 		level.Info(logger).Log("making GET request", dataSrc)
 		response, err := http.Get(dataSrc)
 		if err != nil {
