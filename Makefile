@@ -61,12 +61,12 @@ docker:
 	@docker build -t "configmap-operator" .
 
 .PHONY: docs
-docs: build $(MDOX) ## Generates config snippets and doc formatting.
+docs: build generate $(MDOX) ## Generates config snippets and doc formatting.
 	@echo ">> generating docs $(PATH)"
 	PATH=${PATH}:$(GOBIN) $(MDOX) fmt -l --links.validate.config-file=$(MDOX_VALIDATE_CONFIG) *.md
 
 .PHONY: check-docs
-check-docs: build $(MDOX) ## Checks docs for discrepancies in formatting and links.
+check-docs: build generate $(MDOX) ## Checks docs for discrepancies in formatting and links.
 	@echo ">> checking formatting and links $(PATH)"
 	PATH=${PATH}:$(GOBIN) $(MDOX) fmt --check -l --links.validate.config-file=$(MDOX_VALIDATE_CONFIG) *.md
 
@@ -83,6 +83,22 @@ test:
 	@echo ">> running unit tests (without cache)"
 	@rm -rf $(GOCACHE)
 	@go test -v -timeout=30m $(shell go list ./... | grep -v /vendor/);
+
+
+JSONNET_SRC = $(shell find . -type f -not -path './*vendor/*' \( -name '*.libsonnet' -o -name '*.jsonnet' \))
+
+.PHONY: jsonnet-fmt
+jsonnet-fmt: $(JSONNETFMT) $(JSONNET_SRC)
+	$(JSONNETFMT) -n 2 --max-blank-lines 2 --string-style s --comment-style s -i $(JSONNET_SRC)
+
+.PHONY: generate
+generate: jsonnet/main.jsonnet $(JSONNET_SRC) $(JSONNET) $(GOJSONTOYAML)
+	-make jsonnet-fmt
+	-rm -rf examples/manifests
+	-mkdir examples/manifests
+	$(JSONNET) -J vendor -m examples/manifests jsonnet/main.jsonnet | xargs -I{} sh -c 'cat {} | $(GOJSONTOYAML) > {}.yaml' -- {}
+	find examples/manifests -type f ! -name '*.yaml' -delete
+
 
 .PHONY: check-git
 check-git:

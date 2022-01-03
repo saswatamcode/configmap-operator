@@ -1,11 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: configmap-operator-rolebinding
-  namespace: configmap-operator-demo
   labels:
     app.kubernetes.io/component: kubernetes-operator
-    app.kubernetes.io/name: configmap-operator-rolebinding
+    app.kubernetes.io/instance: configmap-operator
+    app.kubernetes.io/name: configmap-operator
+  name: configmap-operator-rolebinding
+  namespace: configmap-operator-demo
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -13,3 +14,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: configmap-operator-sa
+  namespace: configmap-operator-demo

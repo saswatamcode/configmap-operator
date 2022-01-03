@@ -28,7 +28,7 @@ Flags:
 
 ## Getting Started
 
-Example manifests are provided [here](examples/manifests)!
+Example manifests are provided [here](examples/manifests) and are generated with jsonnet!
 
 Spin-up a cluster with [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) and create a `configmap-operator-demo` namespace,
 
@@ -44,18 +44,19 @@ kubectl apply -f examples/manifests/
 
 This creates the ConfigMap below with an empty `data` field and the annotations `configmap-operator-src` and `configmap-operator-key` which will be used by the operator to fill in `data`.
 
-```yaml mdox-exec="cat examples/manifests/configMap.yaml"
+```yaml mdox-exec="cat examples/manifests/configmap.yaml"
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: example-prom-config
-  namespace: configmap-operator-demo
+  annotations:
+    configmap-operator-key: prom.yaml
+    configmap-operator-src: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/examples/prometheus.yml
   labels:
     app.kubernetes.io/component: kubernetes-operator
-    app.kubernetes.io/name: example-prom-config
-  annotations:
-    configmap-operator-src: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/examples/prometheus.yml
-    configmap-operator-key: prom.yaml
+    app.kubernetes.io/instance: configmap-operator
+    app.kubernetes.io/name: configmap-operator
+  name: example-prom-config
+  namespace: configmap-operator-demo
 ```
 
 The operator is deployed with the Deployment below and its related RoleBinding and ServiceAccount. It finds ConfigMaps with the above annotations and starts updating it periodically (15s)
@@ -64,24 +65,26 @@ The operator is deployed with the Deployment below and its related RoleBinding a
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: configmap-operator
-  namespace: configmap-operator-demo
   labels:
     app.kubernetes.io/component: kubernetes-operator
+    app.kubernetes.io/instance: configmap-operator
     app.kubernetes.io/name: configmap-operator
+  name: configmap-operator
+  namespace: configmap-operator-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/component: kubernetes-operator
+      app.kubernetes.io/instance: configmap-operator
       app.kubernetes.io/name: configmap-operator
   template:
     metadata:
       labels:
         app.kubernetes.io/component: kubernetes-operator
+        app.kubernetes.io/instance: configmap-operator
         app.kubernetes.io/name: configmap-operator
     spec:
-      serviceAccount: configmap-operator-sa
       containers:
       - args:
         - run
@@ -97,6 +100,8 @@ spec:
         image: saswatamcode/configmap-operator
         imagePullPolicy: IfNotPresent
         name: configmap-operator
+        resources: {}
+      serviceAccount: configmap-operator-sa
 ```
 
 Watch the ConfigMap for changes and see the `data` field get populated with a `prom.yaml` sample Prometheus config.

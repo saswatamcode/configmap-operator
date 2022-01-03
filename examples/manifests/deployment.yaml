@@ -1,24 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: configmap-operator
-  namespace: configmap-operator-demo
   labels:
     app.kubernetes.io/component: kubernetes-operator
+    app.kubernetes.io/instance: configmap-operator
     app.kubernetes.io/name: configmap-operator
+  name: configmap-operator
+  namespace: configmap-operator-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/component: kubernetes-operator
+      app.kubernetes.io/instance: configmap-operator
       app.kubernetes.io/name: configmap-operator
   template:
     metadata:
       labels:
         app.kubernetes.io/component: kubernetes-operator
+        app.kubernetes.io/instance: configmap-operator
         app.kubernetes.io/name: configmap-operator
     spec:
-      serviceAccount: configmap-operator-sa
       containers:
       - args:
         - run
@@ -34,3 +36,5 @@ spec:
         image: saswatamcode/configmap-operator
         imagePullPolicy: IfNotPresent
         name: configmap-operator
+        resources: {}
+      serviceAccount: configmap-operator-sa
