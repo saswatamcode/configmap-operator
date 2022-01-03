@@ -36,5 +36,7 @@ spec:
         image: saswatamcode/configmap-operator
         imagePullPolicy: IfNotPresent
         name: configmap-operator
+        ports:
+        - containerPort: 9090
         resources: {}
       serviceAccount: configmap-operator-sa

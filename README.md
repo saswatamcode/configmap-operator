@@ -15,6 +15,7 @@ Flags:
       --version                Show application version.
       --log.level=info         Log filtering level.
       --log.format=clilog      Log format to use.
+      --metrics="metrics"      Endpoint for serving metrics.
       --kubeconfig=KUBECONFIG  Path to a kubeconfig. Only required if
                                out-of-cluster.
       --master=MASTER          The address of the Kubernetes API server.
@@ -100,6 +101,8 @@ spec:
         image: saswatamcode/configmap-operator
         imagePullPolicy: IfNotPresent
         name: configmap-operator
+        ports:
+        - containerPort: 9090
         resources: {}
       serviceAccount: configmap-operator-sa
 ```

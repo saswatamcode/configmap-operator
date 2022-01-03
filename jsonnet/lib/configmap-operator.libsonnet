@@ -118,6 +118,7 @@ function(params) {
       env: [
         { name: 'NAMESPACE', valueFrom: { fieldRef: { fieldPath: 'metadata.namespace' } } },
       ],
+      ports: [{ containerPort: 9090 }],
       resources: if co.config.resources != {} then co.config.resources else {},
     };
 

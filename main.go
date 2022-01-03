@@ -65,6 +65,7 @@ func main() {
 		Default("info").Enum("error", "warn", "info", "debug")
 	logFormat := app.Flag("log.format", "Log format to use.").
 		Default(logFormatCLILog).Enum(logFormatLogfmt, logFormatJson, logFormatCLILog)
+	metrics := app.Flag("metrics", "Endpoint for serving metrics.").Default("metrics").String()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	registerCommands(ctx, app)
@@ -79,10 +80,11 @@ func main() {
 		cancel()
 	})
 
-	srv := &http.Server{Addr: ":9091"}
+	srv := &http.Server{}
 
 	g.Add(func() error {
-		http.Handle("/metrics", promhttp.Handler())
+		srv.Addr = ":9090"
+		http.Handle("/"+*metrics, promhttp.Handler())
 		return srv.ListenAndServe()
 	}, func(err error) {
 		_ = srv.Shutdown(ctx)
