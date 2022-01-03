@@ -1,0 +1,18 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: configmap-operator-role
+  namespace: configmap-operator-demo
+  labels:
+    app.kubernetes.io/component: kubernetes-operator
+    app.kubernetes.io/name: configmap-operator-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - list
+  - watch
+  - get
+  - update

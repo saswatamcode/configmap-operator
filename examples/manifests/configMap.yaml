@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-prom-config
+  namespace: configmap-operator-demo
+  labels:
+    app.kubernetes.io/component: kubernetes-operator
+    app.kubernetes.io/name: example-prom-config
+  annotations:
+    configmap-operator-src: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/examples/prometheus.yml
+    configmap-operator-key: prom.yaml
