@@ -122,7 +122,7 @@ func interrupt(logger log.Logger, cancel <-chan struct{}) error {
 	}
 }
 
-// TODO(saswatamcode): Add tests and observability.
+// TODO(saswatamcode): Add tests and observability. Also, generate manifests with jsonnet.
 func registerCommands(_ context.Context, app *extkingpin.App) {
 	cmd := app.Command("run", "Launches ConfigMap Operator")
 	kubeconfig := cmd.Flag("kubeconfig", "Path to a kubeconfig. Only required if out-of-cluster.").String()

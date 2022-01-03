@@ -1,8 +1,8 @@
 # configmap-operator
 
-Kubernetes Operator which allows you to update ConfigMaps, based on some external URL which serves the required data.
+Kubernetes Operator which allows you to update ConfigMaps, based on some external URL/filepath which serves the required data.
 
-> ⚠ This project is made for learning/experimentation purposes. Not suitable for producation environments. Ideally, you can replicate similar functionality via other standard configuration practices.
+> ⚠ This project is made for learning/experimentation purposes and config can change at any time. Ideally, you can replicate similar functionality via other standard configuration practices.
 
 ```bash mdox-exec="configmap-operator run --help"
 usage: configmap-operator run [<flags>]
@@ -25,3 +25,86 @@ Flags:
                                refreshed.
 
 ```
+
+## Getting Started
+
+Example manifests are provided [here](examples/manifests)!
+
+Spin-up a cluster with [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) and create a `configmap-operator-demo` namespace,
+
+```bash
+kubectl apply -f examples/manifests/namespace.yaml
+```
+
+Deploy the `configmap-operator`,
+
+```bash
+kubectl apply -f examples/manifests/
+```
+
+This creates the ConfigMap below with an empty `data` field and the annotations `configmap-operator-src` and `configmap-operator-key` which will be used by the operator to fill in `data`.
+
+```yaml mdox-exec="cat examples/manifests/configMap.yaml"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-prom-config
+  namespace: configmap-operator-demo
+  labels:
+    app.kubernetes.io/component: kubernetes-operator
+    app.kubernetes.io/name: example-prom-config
+  annotations:
+    configmap-operator-src: https://raw.githubusercontent.com/prometheus/prometheus/main/documentation/examples/prometheus.yml
+    configmap-operator-key: prom.yaml
+```
+
+The operator is deployed with the Deployment below and its related RoleBinding and ServiceAccount. It finds the first ConfigMap with the above annotations and starts updating it periodically (15s)
+
+```yaml mdox-exec="cat examples/manifests/deployment.yaml"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: configmap-operator
+  namespace: configmap-operator-demo
+  labels:
+    app.kubernetes.io/component: kubernetes-operator
+    app.kubernetes.io/name: configmap-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kubernetes-operator
+      app.kubernetes.io/name: configmap-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: kubernetes-operator
+        app.kubernetes.io/name: configmap-operator
+    spec:
+      serviceAccount: configmap-operator-sa
+      containers:
+      - args:
+        - run
+        - --log.level=info
+        - --log.format=json
+        - --refresh.interval=15s
+        - --namespace=$(NAMESPACE)
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: saswatamcode/configmap-operator
+        imagePullPolicy: IfNotPresent
+        name: configmap-operator
+```
+
+Watch the ConfigMap for changes and see the `data` field get populated with a `prom.yaml` sample Prometheus config.
+
+```bash
+watch kubectl get configmap example-prom-config --namespace configmap-operator-demo -o yaml 
+```
+
+## Credits
+
+Initially inspired by [cloud-native-skunkworks/cnskunkworks-operator](https://github.com/cloud-native-skunkworks/cnskunkworks-operator)!

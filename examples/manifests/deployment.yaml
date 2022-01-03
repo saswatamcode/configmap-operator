@@ -23,7 +23,7 @@ spec:
       - args:
         - run
         - --log.level=info
-        - --log.format=logfmt
+        - --log.format=json
         - --refresh.interval=15s
         - --namespace=$(NAMESPACE)
         env:
